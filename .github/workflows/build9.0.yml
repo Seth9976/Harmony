@@ -12,15 +12,22 @@ jobs:
     runs-on: ubuntu-latest  
   
     steps:  
-      - name: Checkout (with submodules)  
+      - name: Checkout  
         uses: actions/checkout@v4  
-        with:  
-          submodules: recursive        # 必须，用于初始化 LocalMonoMod 子模块  
+        # 不设置 submodules，LocalMonoMod 不是 git submodule  
   
       - name: Setup .NET 9.0  
         uses: actions/setup-dotnet@v4  
         with:  
           dotnet-version: '9.0.x'  
+  
+      - name: Get latest MonoMod.Core version  
+        id: monomod  
+        run: |  
+          VERSION=$(curl -s "https://api.nuget.org/v3-flatcontainer/monomod.core/index.json" \  
+            | python3 -c "import sys,json; vs=json.load(sys.stdin)['versions']; print([v for v in reversed(vs) if '-' not in v][0])")  
+          echo "version=$VERSION" >> $GITHUB_OUTPUT  
+          echo "MonoMod.Core version: $VERSION"  
   
       - name: Restore  
         run: |  
@@ -29,7 +36,8 @@ jobs:
             Lib.Harmony.Thin/Lib.Harmony.Thin.csproj \  
             /t:Restore \  
             /p:Configuration=Release \  
-            /p:TargetFrameworks=net9.0  
+            /p:TargetFrameworks=net9.0 \  
+            /p:MonoModCoreVersion=${{ steps.monomod.outputs.version }}  
   
       - name: Build  
         run: |  
@@ -38,7 +46,19 @@ jobs:
             Lib.Harmony.Thin/Lib.Harmony.Thin.csproj \  
             /t:Build \  
             /p:Configuration=Release \  
-            /p:TargetFrameworks=net9.0  
+            /p:TargetFrameworks=net9.0 \  
+            /p:MonoModCoreVersion=${{ steps.monomod.outputs.version }}  
+  
+      - name: Verify target framework is net9.0  
+        run: |  
+          DLL="Lib.Harmony.Thin/bin/Release/net9.0/0Harmony.dll"  
+          if strings "$DLL" | grep -q "NETCoreApp,Version=v9.0"; then  
+            echo "PASS: 0Harmony.dll targets .NET 9.0"  
+          else  
+            echo "FAIL: target framework mismatch"  
+            strings "$DLL" | grep "NETCoreApp" || true  
+            exit 1  
+          fi  
   
       - name: Upload artifact  
         uses: actions/upload-artifact@v4  

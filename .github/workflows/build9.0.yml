@@ -1,0 +1,47 @@
+name: Build Harmony (.NET 9.0)  
+  
+on:  
+  push:  
+    branches: [ main ]  
+  pull_request:  
+    branches: [ main ]  
+  workflow_dispatch:  
+  
+jobs:  
+  build:  
+    runs-on: ubuntu-latest  
+  
+    steps:  
+      - name: Checkout (with submodules)  
+        uses: actions/checkout@v4  
+        with:  
+          submodules: recursive        # 必须，用于初始化 LocalMonoMod 子模块  
+  
+      - name: Setup .NET 9.0  
+        uses: actions/setup-dotnet@v4  
+        with:  
+          dotnet-version: '9.0.x'  
+  
+      - name: Restore  
+        run: |  
+          SDK_VER=$(dotnet --version)  
+          dotnet "$DOTNET_ROOT/sdk/$SDK_VER/MSBuild.dll" \  
+            Lib.Harmony.Thin/Lib.Harmony.Thin.csproj \  
+            /t:Restore \  
+            /p:Configuration=Release \  
+            /p:TargetFrameworks=net9.0  
+  
+      - name: Build  
+        run: |  
+          SDK_VER=$(dotnet --version)  
+          dotnet "$DOTNET_ROOT/sdk/$SDK_VER/MSBuild.dll" \  
+            Lib.Harmony.Thin/Lib.Harmony.Thin.csproj \  
+            /t:Build \  
+            /p:Configuration=Release \  
+            /p:TargetFrameworks=net9.0  
+  
+      - name: Upload artifact  
+        uses: actions/upload-artifact@v4  
+        with:  
+          name: 0Harmony-net9.0  
+          path: Lib.Harmony.Thin/bin/Release/net9.0/

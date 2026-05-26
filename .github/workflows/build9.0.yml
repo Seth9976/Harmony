@@ -24,30 +24,15 @@ jobs:
       - name: Get latest MonoMod.Core version  
         id: monomod  
         run: |  
-          VERSION=$(curl -s "https://api.nuget.org/v3-flatcontainer/monomod.core/index.json" \  
-            | python3 -c "import sys,json; vs=json.load(sys.stdin)['versions']; print([v for v in reversed(vs) if '-' not in v][0])")  
+          VERSION=$(curl -s "https://api.nuget.org/v3-flatcontainer/monomod.core/index.json" | python3 -c "import sys,json; vs=json.load(sys.stdin)['versions']; print([v for v in reversed(vs) if '-' not in v][0])")  
           echo "version=$VERSION" >> $GITHUB_OUTPUT  
-          echo "MonoMod.Core version: $VERSION"  
+          echo "MonoMod.Core version: $VERSION" 
   
       - name: Restore  
-        run: |  
-          SDK_VER=$(dotnet --version)  
-          dotnet "$DOTNET_ROOT/sdk/$SDK_VER/MSBuild.dll" \  
-            Lib.Harmony.Thin/Lib.Harmony.Thin.csproj \  
-            /t:Restore \  
-            /p:Configuration=Release \  
-            /p:TargetFrameworks=net9.0 \  
-            /p:MonoModCoreVersion=${{ steps.monomod.outputs.version }}  
+        run: dotnet "$DOTNET_ROOT/sdk/$(dotnet --version)/MSBuild.dll" Lib.Harmony.Thin/Lib.Harmony.Thin.csproj /t:Restore /p:Configuration=Release /p:TargetFrameworks=net9.0 /p:MonoModCoreVersion=${{ steps.monomod.outputs.version }}  
   
       - name: Build  
-        run: |  
-          SDK_VER=$(dotnet --version)  
-          dotnet "$DOTNET_ROOT/sdk/$SDK_VER/MSBuild.dll" \  
-            Lib.Harmony.Thin/Lib.Harmony.Thin.csproj \  
-            /t:Build \  
-            /p:Configuration=Release \  
-            /p:TargetFrameworks=net9.0 \  
-            /p:MonoModCoreVersion=${{ steps.monomod.outputs.version }}  
+        run: dotnet "$DOTNET_ROOT/sdk/$(dotnet --version)/MSBuild.dll" Lib.Harmony.Thin/Lib.Harmony.Thin.csproj /t:Build /p:Configuration=Release /p:TargetFrameworks=net9.0 /p:MonoModCoreVersion=${{ steps.monomod.outputs.version }}
   
       - name: Verify target framework is net9.0  
         run: |  
